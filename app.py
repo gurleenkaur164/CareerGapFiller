@@ -139,14 +139,10 @@ Return ONLY the JSON, no markdown, no explanation."""
         model="llama-3.3-70b-versatile",
         temperature=0.7,
         max_tokens=4096,
+        response_format={"type": "json_object"},
     )
 
-    raw = chat_completion.choices[0].message.content.strip()
-    # Strip markdown code fences if present
-    raw = re.sub(r'^```[a-z]*\n?', '', raw)
-    raw = re.sub(r'\n?```$', '', raw)
-
-    return json.loads(raw)
+    return json.loads(chat_completion.choices[0].message.content)
 
 
 def send_roadmap_email(to_email, candidate_name, roadmap_data):
