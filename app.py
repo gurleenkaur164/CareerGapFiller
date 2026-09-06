@@ -5,6 +5,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from flask import Flask, request, jsonify, render_template
+from werkzeug.utils import secure_filename
 from groq import Groq
 import PyPDF2
 import requests
@@ -20,6 +21,24 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 
+INJECTION_PATTERNS = [
+    r"ignore\s+(all\s+)?(previous|above|prior)\s+(instructions|prompts|rules)",
+    r"disregard\s+(your|all|the)\s+(instructions|rules|prompt)",
+    r"you\s+are\s+now\s+",
+    r"pretend\s+(you\s+are|to\s+be)",
+    r"forget\s+(everything|all|your\s+instructions)",
+    r"return\s+only|output\s+only|respond\s+with\s+only",
+    r"system\s*prompt",
+]
+
+def sanitize_input(text):
+    """Remove potential prompt injection patterns from user input."""
+    cleaned = text
+    for pattern in INJECTION_PATTERNS:
+        cleaned = re.sub(pattern, "[removed]", cleaned, flags=re.IGNORECASE)
+    return cleaned.strip()
+
+
 def extract_text_from_pdf(file_path):
     """Extract text from a PDF file."""
     text = ""
@@ -33,21 +52,43 @@ def extract_text_from_pdf(file_path):
     return text.strip(), None
 
 
+BLOCKED_DOMAINS = ["linkedin.com", "indeed.com", "glassdoor.com", "naukri.com", "lever.co", "greenhouse.io"]
+
 def extract_job_description(url_or_text):
     """Extract job description from a URL or raw text."""
     if url_or_text.startswith("http://") or url_or_text.startswith("https://"):
+        from urllib.parse import urlparse
+        domain = urlparse(url_or_text).netloc.lower().replace("www.", "")
+
+        if any(blocked in domain for blocked in BLOCKED_DOMAINS):
+            return None, f"{domain} blocks automated scraping. Please copy-paste the job description text directly instead."
+
         try:
-            headers = {'User-Agent': 'Mozilla/5.0'}
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml',
+                'Accept-Language': 'en-US,en;q=0.9',
+            }
             resp = requests.get(url_or_text, headers=headers, timeout=10)
+            resp.raise_for_status()
+
             soup = BeautifulSoup(resp.text, 'html.parser')
-            # Remove script/style elements
-            for tag in soup(['script', 'style', 'nav', 'footer', 'header']):
+            for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'iframe', 'noscript']):
                 tag.decompose()
             text = soup.get_text(separator='\n', strip=True)
-            # Limit to first 4000 chars to keep tokens manageable
+
+            if len(text) < 100:
+                return None, "The page returned very little text. It may require login or block scraping. Please paste the job description text instead."
+
             return text[:4000], None
+        except requests.exceptions.HTTPError as e:
+            return None, f"URL returned HTTP {e.response.status_code}. Please paste the job description text instead."
+        except requests.exceptions.ConnectionError:
+            return None, "Could not connect to the URL. Please check the link or paste the job description text instead."
+        except requests.exceptions.Timeout:
+            return None, "URL request timed out. Please paste the job description text instead."
         except Exception as e:
-            return None, f"Could not fetch URL: {str(e)}"
+            return None, f"Could not fetch URL: {str(e)}. Please paste the job description text instead."
     else:
         return url_or_text.strip(), None
 
@@ -185,7 +226,10 @@ def analyze():
         resume_text = ""
         if 'resume_file' in request.files and request.files['resume_file'].filename:
             file = request.files['resume_file']
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+            filename = secure_filename(file.filename)
+            if not filename.lower().endswith('.pdf'):
+                return jsonify({"error": "Only PDF files are accepted."}), 400
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(file_path)
             resume_text, err = extract_text_from_pdf(file_path)
             os.remove(file_path)
@@ -197,6 +241,8 @@ def analyze():
         if not resume_text:
             return jsonify({"error": "Please provide a resume (PDF or text)."}), 400
 
+        resume_text = sanitize_input(resume_text)
+
         # Get job description
         job_input = request.form.get('job_input', '').strip()
         if not job_input:
@@ -205,6 +251,8 @@ def analyze():
         job_description, err = extract_job_description(job_input)
         if err:
             return jsonify({"error": err}), 400
+
+        job_description = sanitize_input(job_description)
 
         # Analyze and generate roadmap
         roadmap_data = analyze_gap_and_generate_roadmap(resume_text, job_description)
