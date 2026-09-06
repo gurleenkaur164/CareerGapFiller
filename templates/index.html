@@ -566,6 +566,37 @@
       font-size: 14px;
     }
 
+    /* ── Copy button ── */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .btn-row .submit-btn { flex: 1; }
+    .copy-btn {
+      flex: 1;
+      background: var(--surface);
+      border: 1.5px solid var(--accent);
+      border-radius: 12px;
+      padding: 15px;
+      color: var(--accent);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.2s, color 0.2s;
+    }
+    .copy-btn:hover {
+      background: var(--accent);
+      color: white;
+      transform: translateY(-1px);
+    }
+    .copy-btn.copied {
+      background: var(--accent3);
+      border-color: var(--accent3);
+      color: white;
+    }
+
     .error-card {
       background: rgba(239,68,68,0.08);
       border: 1px solid rgba(239,68,68,0.2);
@@ -724,10 +755,11 @@
         <p id="summaryText"></p>
       </div>
 
-      <!-- Restart -->
-      <button class="submit-btn" style="margin-top:16px;" onclick="restart()">
-        analyze another role
-      </button>
+      <!-- Actions -->
+      <div class="btn-row">
+        <button class="copy-btn" id="copyBtn" onclick="copyRoadmap()">copy to clipboard</button>
+        <button class="submit-btn" onclick="restart()">analyze another role</button>
+      </div>
     </div>
   </div>
 
@@ -851,7 +883,10 @@
       el.style.display = 'block';
     }
 
+    let _lastRoadmap = null;
+
     function renderResults(data) {
+      _lastRoadmap = data.roadmap;
       const rd = data.roadmap;
 
       document.getElementById('candidateName').textContent = rd.candidate_name || 'your roadmap';
@@ -943,6 +978,50 @@
       document.getElementById('summaryText').textContent = rd.summary || '';
 
       document.getElementById('results').style.display = 'block';
+    }
+
+    function copyRoadmap() {
+      if (!_lastRoadmap) return;
+      const rd = _lastRoadmap;
+      let txt = `Career Gap-Filler Roadmap\n`;
+      txt += `========================\n\n`;
+      txt += `Candidate: ${rd.candidate_name || 'N/A'}\n`;
+      txt += `Target Role: ${rd.job_title || 'N/A'}\n`;
+      if (rd.match_score != null) txt += `Match Score: ${rd.match_score}%\n`;
+      txt += `\n`;
+
+      if ((rd.matching_skills || []).length) {
+        txt += `Skills You Have:\n`;
+        rd.matching_skills.forEach(s => { txt += `  + ${s.skill}${s.evidence ? ' — ' + s.evidence : ''}\n`; });
+        txt += `\n`;
+      }
+
+      if ((rd.missing_skills || []).length) {
+        txt += `Skills to Bridge:\n`;
+        rd.missing_skills.forEach(s => { txt += `  - ${s.skill} [${s.importance}] ${s.reason || ''}\n`; });
+        txt += `\n`;
+      }
+
+      txt += `7-Day Roadmap:\n`;
+      (rd.roadmap || []).forEach(day => {
+        txt += `\nDay ${day.day}: ${day.focus}\n`;
+        txt += `  Goal: ${day.goal || ''}\n`;
+        txt += `  Tasks:\n`;
+        (day.tasks || []).forEach(t => { txt += `    ~ ${t}\n`; });
+        if ((day.resources || []).length) {
+          txt += `  Resources:\n`;
+          day.resources.forEach(r => { txt += `    - ${r.title} (${r.type}) ${r.url || ''}\n`; });
+        }
+      });
+
+      if (rd.summary) txt += `\n${rd.summary}\n`;
+
+      navigator.clipboard.writeText(txt).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = 'copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'copy to clipboard'; btn.classList.remove('copied'); }, 2000);
+      });
     }
 
     function toggleDay(idx) {
