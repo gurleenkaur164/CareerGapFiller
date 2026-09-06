@@ -5,42 +5,96 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Career Gap-Filler Advisor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
+    /* ── Light palette (default) ── */
     :root {
-      --bg: #080812;
-      --surface: #0f0f1e;
-      --surface2: #161628;
-      --border: #2a2a45;
-      --accent: #7c6aff;
-      --accent2: #ff6ab0;
-      --accent3: #6affcc;
-      --text: #e8e8f8;
-      --muted: #6b6b8a;
-      --critical: #ff6ab0;
-      --high: #ffaa4a;
-      --medium: #6affcc;
+      --bg: #f5f3ff;
+      --surface: #ffffff;
+      --surface2: #f0eef9;
+      --border: #e2dff0;
+      --accent: #7c5cfc;
+      --accent2: #f472b6;
+      --accent3: #10b981;
+      --text: #1e1b2e;
+      --text2: #3d3755;
+      --muted: #8c84a8;
+      --critical: #ef4444;
+      --high: #f59e0b;
+      --medium: #10b981;
+      --shadow: rgba(124,92,252,0.08);
+      --glow1: rgba(124,92,252,0.08);
+      --glow2: rgba(244,114,182,0.06);
+      --grid-opacity: 0.04;
+      --toggle-bg: #e2dff0;
+      --toggle-icon: "☀️";
+    }
+
+    /* ── Dark palette ── */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0c0a1a;
+        --surface: #16132a;
+        --surface2: #1e1a36;
+        --border: #2e2950;
+        --accent: #a78bfa;
+        --accent2: #f472b6;
+        --accent3: #34d399;
+        --text: #f0eef9;
+        --text2: #c4bfdb;
+        --muted: #7a72a0;
+        --critical: #fb7185;
+        --high: #fbbf24;
+        --medium: #34d399;
+        --shadow: rgba(0,0,0,0.3);
+        --glow1: rgba(167,139,250,0.1);
+        --glow2: rgba(244,114,182,0.06);
+        --grid-opacity: 0.03;
+        --toggle-bg: #2e2950;
+        --toggle-icon: "🌙";
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0c0a1a;
+      --surface: #16132a;
+      --surface2: #1e1a36;
+      --border: #2e2950;
+      --accent: #a78bfa;
+      --accent2: #f472b6;
+      --accent3: #34d399;
+      --text: #f0eef9;
+      --text2: #c4bfdb;
+      --muted: #7a72a0;
+      --critical: #fb7185;
+      --high: #fbbf24;
+      --medium: #34d399;
+      --shadow: rgba(0,0,0,0.3);
+      --glow1: rgba(167,139,250,0.1);
+      --glow2: rgba(244,114,182,0.06);
+      --grid-opacity: 0.03;
+      --toggle-bg: #2e2950;
+      --toggle-icon: "🌙";
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Inter', -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
       overflow-x: hidden;
+      transition: background 0.3s, color 0.3s;
     }
 
-    /* Background grid */
+    /* subtle dot grid bg */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
-      background-image:
-        linear-gradient(rgba(124,106,255,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(124,106,255,0.04) 1px, transparent 1px);
-      background-size: 40px 40px;
+      background-image: radial-gradient(circle, var(--accent) 0.8px, transparent 0.8px);
+      background-size: 28px 28px;
+      opacity: var(--grid-opacity);
       pointer-events: none;
       z-index: 0;
     }
@@ -48,96 +102,119 @@
     .glow-orb {
       position: fixed;
       border-radius: 50%;
-      filter: blur(100px);
+      filter: blur(120px);
       pointer-events: none;
       z-index: 0;
+      transition: background 0.3s;
     }
-    .orb1 { width: 500px; height: 500px; background: rgba(124,106,255,0.12); top: -200px; right: -100px; }
-    .orb2 { width: 400px; height: 400px; background: rgba(255,106,176,0.08); bottom: -100px; left: -100px; }
+    .orb1 { width: 500px; height: 500px; background: var(--glow1); top: -200px; right: -100px; }
+    .orb2 { width: 400px; height: 400px; background: var(--glow2); bottom: -100px; left: -100px; }
 
     .container {
-      max-width: 800px;
+      max-width: 720px;
       margin: 0 auto;
-      padding: 40px 24px 80px;
+      padding: 32px 20px 80px;
       position: relative;
       z-index: 1;
     }
 
-    /* Header */
+    /* ── Theme toggle ── */
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 100;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 12px var(--shadow);
+      transition: transform 0.2s, background 0.3s, border-color 0.3s;
+    }
+    .theme-toggle:hover { transform: scale(1.1) rotate(15deg); }
+
+    /* ── Header ── */
     header {
       text-align: center;
-      margin-bottom: 52px;
-      animation: fadeDown 0.7s ease both;
+      margin-bottom: 44px;
+      animation: fadeDown 0.6s ease both;
     }
 
     .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(124,106,255,0.15);
-      border: 1px solid rgba(124,106,255,0.3);
-      color: #a89fff;
-      font-size: 11px;
-      font-weight: 500;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      padding: 5px 14px;
-      border-radius: 20px;
-      margin-bottom: 20px;
+      display: inline-block;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 16px;
+      border-radius: 99px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 8px var(--shadow);
     }
 
     h1 {
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(36px, 6vw, 56px);
-      font-weight: 800;
-      line-height: 1.1;
-      background: linear-gradient(135deg, #fff 30%, #a89fff 60%, #ff6ab0 90%);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(32px, 6vw, 52px);
+      font-weight: 700;
+      line-height: 1.15;
+      color: var(--text);
+      margin-bottom: 14px;
+    }
+    h1 span {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      margin-bottom: 16px;
     }
 
     header p {
       color: var(--muted);
-      font-size: 16px;
-      font-weight: 300;
-      line-height: 1.6;
-      max-width: 480px;
+      font-size: 15px;
+      font-weight: 400;
+      line-height: 1.7;
+      max-width: 460px;
       margin: 0 auto;
     }
 
-    /* Form card */
+    /* ── Cards ── */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 32px;
-      margin-bottom: 20px;
-      animation: fadeUp 0.6s ease both;
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px var(--shadow);
+      animation: fadeUp 0.5s ease both;
+      transition: background 0.3s, border-color 0.3s;
     }
+    .card:hover { border-color: var(--accent); }
 
     .card-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 20px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text2);
+      margin-bottom: 18px;
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
-    .field-group { margin-bottom: 20px; }
+    .field-group { margin-bottom: 18px; }
 
     label {
       display: block;
       font-size: 13px;
       font-weight: 500;
-      color: #a0a0c0;
-      margin-bottom: 8px;
+      color: var(--muted);
+      margin-bottom: 7px;
     }
 
     input[type="text"],
@@ -145,36 +222,35 @@
     textarea {
       width: 100%;
       background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 13px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
       color: var(--text);
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Inter', sans-serif;
       font-size: 14px;
       outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.3s;
       resize: vertical;
     }
-
     input:focus, textarea:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(124,106,255,0.15);
+      box-shadow: 0 0 0 3px rgba(124,92,252,0.12);
     }
-
-    textarea { min-height: 140px; }
+    textarea { min-height: 130px; }
 
     .or-divider {
       text-align: center;
       color: var(--muted);
       font-size: 12px;
-      margin: 10px 0;
+      font-weight: 500;
+      margin: 12px 0;
       position: relative;
     }
     .or-divider::before, .or-divider::after {
       content: '';
       position: absolute;
       top: 50%;
-      width: 42%;
+      width: 40%;
       height: 1px;
       background: var(--border);
     }
@@ -184,7 +260,7 @@
     .file-drop {
       border: 2px dashed var(--border);
       border-radius: 12px;
-      padding: 24px;
+      padding: 28px;
       text-align: center;
       cursor: pointer;
       transition: border-color 0.2s, background 0.2s;
@@ -192,7 +268,7 @@
     }
     .file-drop:hover, .file-drop.dragover {
       border-color: var(--accent);
-      background: rgba(124,106,255,0.05);
+      background: rgba(124,92,252,0.04);
     }
     .file-drop input[type="file"] {
       position: absolute;
@@ -202,257 +278,126 @@
       width: 100%;
       height: 100%;
     }
-    .file-drop-icon { font-size: 28px; margin-bottom: 8px; }
+    .file-drop-icon { font-size: 32px; margin-bottom: 8px; }
     .file-drop p { color: var(--muted); font-size: 13px; }
-    .file-drop .file-name { color: var(--accent3); font-size: 13px; margin-top: 6px; font-weight: 500; }
+    .file-drop .file-name { color: var(--accent3); font-size: 13px; margin-top: 8px; font-weight: 600; }
 
+    /* ── Buttons ── */
     .submit-btn {
       width: 100%;
-      background: linear-gradient(135deg, var(--accent), #9c6aff);
+      background: var(--accent);
       border: none;
       border-radius: 12px;
-      padding: 16px;
+      padding: 15px;
       color: white;
-      font-family: 'Syne', sans-serif;
+      font-family: 'Space Grotesk', sans-serif;
       font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
+      font-weight: 600;
       cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+      transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
       position: relative;
-      overflow: hidden;
     }
     .submit-btn:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 30px rgba(124,106,255,0.4);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(124,92,252,0.35);
     }
-    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .submit-btn:active:not(:disabled) { transform: translateY(0); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    /* Loading state */
+    /* ── Loading ── */
     .loading-overlay {
       display: none;
       text-align: center;
-      padding: 40px;
+      padding: 48px 20px;
     }
     .loading-overlay.active { display: block; }
     .spinner {
-      width: 48px; height: 48px;
+      width: 40px; height: 40px;
       border: 3px solid var(--border);
       border-top-color: var(--accent);
       border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto 16px;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 14px;
     }
-    .loading-text { color: var(--muted); font-size: 14px; }
-    .loading-steps { margin-top: 12px; }
-    .step { color: var(--muted); font-size: 13px; padding: 3px 0; transition: color 0.3s; }
-    .step.active { color: var(--accent3); }
-    .step.done { color: var(--accent); }
+    .loading-text { color: var(--muted); font-size: 14px; font-weight: 500; }
+    .loading-steps { margin-top: 14px; }
+    .step { color: var(--muted); font-size: 13px; padding: 4px 0; transition: color 0.3s; }
+    .step.active { color: var(--accent); font-weight: 500; }
+    .step.done { color: var(--accent3); }
 
-    /* Results */
-    #results { display: none; animation: fadeUp 0.7s ease both; }
+    /* ── Results ── */
+    #results { display: none; animation: fadeUp 0.6s ease both; }
 
     .result-header {
-      background: linear-gradient(135deg, rgba(124,106,255,0.1), rgba(255,106,176,0.05));
-      border: 1px solid rgba(124,106,255,0.25);
-      border-radius: 20px;
-      padding: 28px 32px;
-      margin-bottom: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 28px;
+      margin-bottom: 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 12px;
+      box-shadow: 0 1px 4px var(--shadow);
     }
     .result-header h2 {
-      font-family: 'Syne', sans-serif;
-      font-size: 22px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 20px;
       font-weight: 700;
     }
     .result-header .target-role {
       color: var(--accent);
-      font-size: 14px;
-      margin-top: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-top: 3px;
     }
     .email-badge {
-      background: rgba(106,255,204,0.1);
-      border: 1px solid rgba(106,255,204,0.3);
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.25);
       color: var(--accent3);
-      padding: 6px 16px;
-      border-radius: 20px;
+      padding: 5px 14px;
+      border-radius: 99px;
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 600;
     }
 
-    /* Skills grid */
+    /* ── Skills grid ── */
     .skills-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
       gap: 10px;
-      margin-bottom: 20px;
     }
     .skill-chip {
-      background: var(--surface);
+      background: var(--surface2);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 16px;
-    }
-    .skill-chip .skill-name {
-      font-weight: 600;
-      font-size: 14px;
-      margin-bottom: 4px;
-    }
-    .skill-chip .skill-importance {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 2px 8px;
       border-radius: 10px;
-      display: inline-block;
-      margin-bottom: 6px;
-    }
-    .importance-critical { background: rgba(255,106,176,0.15); color: var(--critical); }
-    .importance-high { background: rgba(255,170,74,0.15); color: var(--high); }
-    .importance-medium { background: rgba(106,255,204,0.15); color: var(--medium); }
-    .skill-chip .skill-reason { font-size: 12px; color: var(--muted); line-height: 1.4; }
-
-    /* Roadmap days */
-    .day-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 12px;
-      position: relative;
-      overflow: hidden;
+      padding: 12px 14px;
       transition: border-color 0.2s;
     }
-    .day-card:hover { border-color: rgba(124,106,255,0.4); }
-    .day-card::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 3px;
-      background: linear-gradient(to bottom, var(--accent), var(--accent2));
-    }
-
-    .day-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
-      cursor: pointer;
-    }
-    .day-number {
-      background: linear-gradient(135deg, var(--accent), #9c6aff);
-      color: white;
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
+    .skill-chip:hover { border-color: var(--accent); }
+    .skill-chip .skill-name {
+      font-weight: 600;
       font-size: 13px;
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
+      margin-bottom: 4px;
+      color: var(--text);
     }
-    .day-focus {
-      font-family: 'Syne', sans-serif;
-      font-size: 16px;
-      font-weight: 700;
-      flex: 1;
-    }
-    .day-toggle { color: var(--muted); font-size: 18px; transition: transform 0.3s; }
-    .day-toggle.open { transform: rotate(180deg); }
-
-    .day-body { display: none; }
-    .day-body.open { display: block; }
-
-    .day-goal {
-      background: rgba(106,255,204,0.07);
-      border: 1px solid rgba(106,255,204,0.15);
-      border-radius: 8px;
-      padding: 10px 14px;
-      color: var(--accent3);
-      font-size: 13px;
-      margin-bottom: 16px;
-    }
-
-    .day-section-title {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-
-    .task-list { list-style: none; margin-bottom: 16px; }
-    .task-list li {
-      padding: 6px 0;
-      font-size: 14px;
-      color: #c0c0e0;
-      display: flex;
-      gap: 8px;
-      align-items: flex-start;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-    }
-    .task-list li:last-child { border: none; }
-    .task-list li::before { content: '→'; color: var(--accent); flex-shrink: 0; margin-top: 1px; }
-
-    .resource-list { list-style: none; }
-    .resource-list li { margin-bottom: 8px; }
-    .resource-list a {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: #a89fff;
-      text-decoration: none;
-      font-size: 13px;
-      transition: color 0.2s;
-    }
-    .resource-list a:hover { color: white; }
-    .resource-tag {
-      background: rgba(124,106,255,0.15);
-      color: #a89fff;
+    .skill-chip .skill-importance {
       font-size: 10px;
-      padding: 1px 7px;
-      border-radius: 8px;
-      text-transform: uppercase;
+      font-weight: 700;
       letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 6px;
+      display: inline-block;
+      margin-bottom: 5px;
     }
+    .importance-critical { background: rgba(239,68,68,0.12); color: var(--critical); }
+    .importance-high { background: rgba(245,158,11,0.12); color: var(--high); }
+    .importance-medium { background: rgba(16,185,129,0.12); color: var(--medium); }
+    .skill-chip .skill-reason { font-size: 12px; color: var(--muted); line-height: 1.4; }
 
-    .summary-card {
-      background: linear-gradient(135deg, rgba(124,106,255,0.08), rgba(255,106,176,0.05));
-      border: 1px solid rgba(124,106,255,0.2);
-      border-radius: 16px;
-      padding: 24px;
-      margin-top: 20px;
-      text-align: center;
-    }
-    .summary-card p {
-      color: #c0c0e0;
-      font-style: italic;
-      line-height: 1.7;
-      font-size: 15px;
-    }
-
-    .error-card {
-      background: rgba(255,106,176,0.08);
-      border: 1px solid rgba(255,106,176,0.25);
-      border-radius: 12px;
-      padding: 16px 20px;
-      color: var(--critical);
-      font-size: 14px;
-      display: none;
-      margin-bottom: 16px;
-    }
-
-    /* Match score ring */
+    /* ── Match score ring ── */
     .score-ring {
       position: relative;
       display: inline-block;
@@ -463,27 +408,27 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-family: 'Syne', sans-serif;
-      font-size: 32px;
-      font-weight: 800;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 30px;
+      font-weight: 700;
       color: var(--text);
     }
     .score-detail {
       color: var(--muted);
-      font-size: 14px;
+      font-size: 13px;
       margin-top: 4px;
     }
     .skill-chip-match {
-      background: rgba(106,255,204,0.06);
-      border: 1px solid rgba(106,255,204,0.2);
-      border-radius: 12px;
-      padding: 12px 16px;
+      background: rgba(16,185,129,0.06);
+      border: 1px solid rgba(16,185,129,0.2);
+      border-radius: 10px;
+      padding: 12px 14px;
     }
     .skill-chip-match .skill-name {
       font-weight: 600;
-      font-size: 14px;
+      font-size: 13px;
       color: var(--accent3);
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
     .skill-chip-match .skill-evidence {
       font-size: 12px;
@@ -491,23 +436,167 @@
       line-height: 1.4;
     }
 
-    /* Animations */
+    /* ── Roadmap days ── */
+    .day-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 10px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, background 0.3s;
+    }
+    .day-card:hover { border-color: var(--accent); }
+    .day-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--accent);
+      border-radius: 0 3px 3px 0;
+    }
+
+    .day-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      padding-left: 8px;
+    }
+    .day-number {
+      background: var(--accent);
+      color: white;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .day-focus {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      flex: 1;
+      color: var(--text);
+    }
+    .day-toggle { color: var(--muted); font-size: 16px; transition: transform 0.3s; }
+    .day-toggle.open { transform: rotate(180deg); }
+
+    .day-body { display: none; padding-left: 8px; margin-top: 14px; }
+    .day-body.open { display: block; }
+
+    .day-goal {
+      background: rgba(16,185,129,0.08);
+      border: 1px solid rgba(16,185,129,0.15);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--accent3);
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 14px;
+    }
+
+    .day-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .task-list { list-style: none; margin-bottom: 14px; }
+    .task-list li {
+      padding: 5px 0;
+      font-size: 13px;
+      color: var(--text2);
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--border);
+    }
+    .task-list li:last-child { border: none; }
+    .task-list li::before { content: '~'; color: var(--accent); flex-shrink: 0; font-weight: 700; }
+
+    .resource-list { list-style: none; }
+    .resource-list li { margin-bottom: 6px; }
+    .resource-list a {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+    .resource-list a:hover { opacity: 0.7; }
+    .resource-tag {
+      background: rgba(124,92,252,0.1);
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 16px;
+      text-align: center;
+      box-shadow: 0 1px 4px var(--shadow);
+    }
+    .summary-card p {
+      color: var(--text2);
+      font-style: italic;
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .error-card {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 10px;
+      padding: 14px 18px;
+      color: var(--critical);
+      font-size: 13px;
+      font-weight: 500;
+      display: none;
+      margin-bottom: 14px;
+    }
+
+    /* ── Animations ── */
     @keyframes fadeDown {
-      from { opacity: 0; transform: translateY(-20px); }
+      from { opacity: 0; transform: translateY(-16px); }
       to { opacity: 1; transform: translateY(0); }
     }
     @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(20px); }
+      from { opacity: 0; transform: translateY(16px); }
       to { opacity: 1; transform: translateY(0); }
     }
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
 
-    /* Responsive */
+    /* ── Responsive ── */
     @media (max-width: 600px) {
+      .container { padding: 20px 14px 60px; }
       .card { padding: 20px; }
       .skills-grid { grid-template-columns: 1fr 1fr; }
+      .theme-toggle { top: 12px; right: 12px; width: 38px; height: 38px; font-size: 16px; }
     }
   </style>
 </head>
@@ -515,25 +604,27 @@
   <div class="glow-orb orb1"></div>
   <div class="glow-orb orb2"></div>
 
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme">☀️</button>
+
   <div class="container">
     <header>
-      <div class="badge">🎯 AI-Powered Career Tool</div>
-      <h1>Career Gap-Filler<br>Advisor</h1>
-      <p>Upload your resume + paste a job description. Get a personalized 7-day learning roadmap to bridge the gap — delivered to your inbox.</p>
+      <div class="badge">ai-powered career tool</div>
+      <h1>career gap-filler<br><span>advisor</span></h1>
+      <p>drop your resume + a job description. we'll find exactly what's missing and build you a 7-day game plan to close the gap.</p>
     </header>
 
     <!-- Input Form -->
     <div id="form-section">
       <!-- Resume Upload -->
       <div class="card" style="animation-delay:0.1s">
-        <div class="card-title">📄 Step 1 — Your Resume</div>
+        <div class="card-title">step 1 -- your resume</div>
 
         <div class="field-group">
-          <label>Upload Resume PDF</label>
+          <label>upload resume pdf</label>
           <div class="file-drop" id="fileDrop">
             <input type="file" id="resumeFile" accept=".pdf" />
-            <div class="file-drop-icon">📎</div>
-            <p>Drag & drop your PDF here, or click to browse</p>
+            <div class="file-drop-icon">+</div>
+            <p>drag & drop your pdf here, or click to browse</p>
             <div class="file-name" id="fileName"></div>
           </div>
         </div>
@@ -541,24 +632,24 @@
         <div class="or-divider">or paste resume text</div>
 
         <div class="field-group">
-          <textarea id="resumeText" placeholder="Paste your resume content here...&#10;&#10;e.g. John Doe | john@email.com&#10;Skills: Python, SQL, Excel...&#10;Experience: ..."></textarea>
+          <textarea id="resumeText" placeholder="paste your resume content here...&#10;&#10;e.g. Jane Doe | jane@email.com&#10;skills: python, sql, excel...&#10;experience: ..."></textarea>
         </div>
       </div>
 
       <!-- Job Description -->
       <div class="card" style="animation-delay:0.2s">
-        <div class="card-title">💼 Step 2 — Target Job Description</div>
+        <div class="card-title">step 2 -- target job description</div>
         <div class="field-group">
-          <label>Job URL or paste the full Job Description</label>
-          <textarea id="jobInput" placeholder="https://linkedin.com/jobs/... &#10;&#10;— OR —&#10;&#10;Paste the full job description text here..." style="min-height:120px"></textarea>
+          <label>job url or paste the full jd</label>
+          <textarea id="jobInput" placeholder="paste the full job description text here...&#10;&#10;(note: linkedin/indeed urls don't work -- just copy-paste the jd text)" style="min-height:120px"></textarea>
         </div>
       </div>
 
       <!-- Email -->
       <div class="card" style="animation-delay:0.3s">
-        <div class="card-title">📬 Step 3 — Email (Optional)</div>
+        <div class="card-title">step 3 -- email (optional)</div>
         <div class="field-group">
-          <label>Your email address — get the roadmap in your inbox</label>
+          <label>get the roadmap delivered to your inbox</label>
           <input type="email" id="emailInput" placeholder="you@example.com" />
         </div>
       </div>
@@ -566,19 +657,19 @@
       <div class="error-card" id="errorCard"></div>
 
       <button class="submit-btn" id="submitBtn" onclick="analyzeGap()">
-        ✨ Generate My 7-Day Roadmap
+        generate my 7-day roadmap
       </button>
     </div>
 
     <!-- Loading -->
     <div class="loading-overlay" id="loadingOverlay">
       <div class="spinner"></div>
-      <div class="loading-text">Analyzing your profile...</div>
+      <div class="loading-text">analyzing your profile...</div>
       <div class="loading-steps">
-        <div class="step active" id="step1">📖 Reading your resume</div>
-        <div class="step" id="step2">🔍 Parsing job description</div>
-        <div class="step" id="step3">🤖 AI identifying skill gaps</div>
-        <div class="step" id="step4">🗺️ Generating 7-day roadmap</div>
+        <div class="step active" id="step1">reading your resume</div>
+        <div class="step" id="step2">parsing job description</div>
+        <div class="step" id="step3">ai identifying skill gaps</div>
+        <div class="step" id="step4">generating 7-day roadmap</div>
       </div>
     </div>
 
@@ -594,12 +685,12 @@
 
       <!-- Match Score -->
       <div class="card" id="matchScoreCard" style="display:none">
-        <div class="card-title">📊 Match Score</div>
+        <div class="card-title">match score</div>
         <div style="text-align:center;padding:20px 0;">
           <div class="score-ring" id="scoreRing">
-            <svg viewBox="0 0 120 120" width="140" height="140">
-              <circle cx="60" cy="60" r="52" fill="none" stroke="var(--border)" stroke-width="10"/>
-              <circle cx="60" cy="60" r="52" fill="none" stroke-width="10" stroke-linecap="round"
+            <svg viewBox="0 0 120 120" width="130" height="130">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="var(--border)" stroke-width="8"/>
+              <circle cx="60" cy="60" r="52" fill="none" stroke-width="8" stroke-linecap="round"
                 id="scoreCircle"
                 style="transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset 1.2s ease;"
                 stroke-dasharray="327" stroke-dashoffset="327"/>
@@ -612,19 +703,19 @@
 
       <!-- Matching Skills -->
       <div class="card" id="matchingSkillsCard" style="display:none">
-        <div class="card-title">✅ Skills You Already Have</div>
+        <div class="card-title">skills you already have</div>
         <div class="skills-grid" id="matchingSkillsGrid"></div>
       </div>
 
       <!-- Missing Skills -->
       <div class="card">
-        <div class="card-title">⚡ Skills to Bridge</div>
+        <div class="card-title">skills to bridge</div>
         <div class="skills-grid" id="skillsGrid"></div>
       </div>
 
       <!-- 7-Day Roadmap -->
       <div class="card">
-        <div class="card-title">📅 Your 7-Day Learning Roadmap</div>
+        <div class="card-title">your 7-day learning roadmap</div>
         <div id="roadmapDays"></div>
       </div>
 
@@ -634,14 +725,46 @@
       </div>
 
       <!-- Restart -->
-      <button class="submit-btn" style="margin-top:20px;" onclick="restart()">
-        ↩ Analyze Another Role
+      <button class="submit-btn" style="margin-top:16px;" onclick="restart()">
+        analyze another role
       </button>
     </div>
   </div>
 
   <script>
-    // File drop handler
+    // ── Theme toggle ──
+    function getTheme() {
+      return localStorage.getItem('cgf-theme') || 'system';
+    }
+    function applyTheme(theme) {
+      const root = document.documentElement;
+      const btn = document.getElementById('themeToggle');
+      if (theme === 'dark') {
+        root.setAttribute('data-theme', 'dark');
+        btn.textContent = '🌙';
+      } else if (theme === 'light') {
+        root.setAttribute('data-theme', 'light');
+        btn.textContent = '☀️';
+      } else {
+        root.removeAttribute('data-theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        btn.textContent = prefersDark ? '🌙' : '☀️';
+      }
+    }
+    function toggleTheme() {
+      const current = getTheme();
+      const isDark = current === 'dark' ||
+        (current === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      const next = isDark ? 'light' : 'dark';
+      localStorage.setItem('cgf-theme', next);
+      applyTheme(next);
+    }
+    applyTheme(getTheme());
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (getTheme() === 'system') applyTheme('system');
+    });
+
+    // ── File drop handler ──
     const fileDrop = document.getElementById('fileDrop');
     const fileInput = document.getElementById('resumeFile');
     const fileNameEl = document.getElementById('fileName');
@@ -652,14 +775,14 @@
       e.preventDefault(); fileDrop.classList.remove('dragover');
       if (e.dataTransfer.files[0]) {
         fileInput.files = e.dataTransfer.files;
-        fileNameEl.textContent = '✓ ' + e.dataTransfer.files[0].name;
+        fileNameEl.textContent = '+ ' + e.dataTransfer.files[0].name;
       }
     });
     fileInput.addEventListener('change', () => {
-      if (fileInput.files[0]) fileNameEl.textContent = '✓ ' + fileInput.files[0].name;
+      if (fileInput.files[0]) fileNameEl.textContent = '+ ' + fileInput.files[0].name;
     });
 
-    // Loading step animation
+    // ── Loading step animation ──
     function animateSteps() {
       const steps = ['step1','step2','step3','step4'];
       let i = 0;
@@ -684,15 +807,14 @@
       errorCard.style.display = 'none';
 
       if (!resumeFile && !resumeText) {
-        showError('Please upload a resume PDF or paste your resume text.');
+        showError('please upload a resume pdf or paste your resume text.');
         return;
       }
       if (!jobInput) {
-        showError('Please provide a job description or URL.');
+        showError('please provide a job description or url.');
         return;
       }
 
-      // Show loading
       document.getElementById('form-section').style.display = 'none';
       document.getElementById('loadingOverlay').classList.add('active');
       animateSteps();
@@ -719,26 +841,26 @@
       } catch (err) {
         document.getElementById('loadingOverlay').classList.remove('active');
         document.getElementById('form-section').style.display = 'block';
-        showError('Network error. Is the server running?');
+        showError('network error. is the server running?');
       }
     }
 
     function showError(msg) {
       const el = document.getElementById('errorCard');
-      el.textContent = '⚠️ ' + msg;
+      el.textContent = msg;
       el.style.display = 'block';
     }
 
     function renderResults(data) {
       const rd = data.roadmap;
 
-      document.getElementById('candidateName').textContent = rd.candidate_name || 'Your Roadmap';
-      document.getElementById('targetRole').textContent = '→ ' + (rd.job_title || 'Target Role');
+      document.getElementById('candidateName').textContent = rd.candidate_name || 'your roadmap';
+      document.getElementById('targetRole').textContent = '-> ' + (rd.job_title || 'target role');
 
       if (data.email_status) {
         const es = document.getElementById('emailStatus');
         es.style.display = 'inline-flex';
-        es.textContent = data.email_status.success ? '✉️ Roadmap emailed!' : '⚠️ Email failed';
+        es.textContent = data.email_status.success ? 'roadmap emailed!' : 'email failed';
       }
 
       // Match Score
@@ -804,13 +926,13 @@
             <div class="day-header" onclick="toggleDay(${idx})">
               <div class="day-number">${day.day}</div>
               <div class="day-focus">${day.focus}</div>
-              <div class="day-toggle" id="toggle-${idx}">▾</div>
+              <div class="day-toggle" id="toggle-${idx}">v</div>
             </div>
             <div class="day-body ${idx === 0 ? 'open' : ''}" id="body-${idx}">
-              <div class="day-goal">🎯 ${day.goal || ''}</div>
-              <div class="day-section-title">Tasks</div>
+              <div class="day-goal">goal: ${day.goal || ''}</div>
+              <div class="day-section-title">tasks</div>
               <ul class="task-list">${tasks}</ul>
-              <div class="day-section-title">Resources</div>
+              <div class="day-section-title">resources</div>
               <ul class="resource-list">${resources}</ul>
             </div>
           </div>`;
@@ -842,7 +964,6 @@
       document.getElementById('matchingSkillsCard').style.display = 'none';
       document.getElementById('scoreCircle').style.strokeDashoffset = 327;
       document.getElementById('scoreText').textContent = '0%';
-      // Reset loading steps
       ['step1','step2','step3','step4'].forEach((s,i) => {
         const el = document.getElementById(s);
         el.className = 'step' + (i === 0 ? ' active' : '');
