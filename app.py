@@ -102,13 +102,21 @@ I will give you:
 2. A JOB DESCRIPTION they are targeting
 
 Your task is to:
-1. Identify the TOP 5-7 missing skills/keywords from the resume vs the job description
-2. Generate a personalized 7-DAY learning roadmap to bridge those gaps
+1. Identify ALL skills/keywords required in the job description
+2. Determine which of those the candidate ALREADY HAS (matching skills)
+3. Identify the TOP 5-7 MISSING skills/keywords
+4. Calculate a match percentage (matching skills / total required skills * 100, rounded to nearest integer)
+5. Generate a personalized 7-DAY learning roadmap to bridge the gaps
 
 Return your response as a VALID JSON object with this exact structure:
 {{
   "job_title": "extracted job title from JD",
   "candidate_name": "extracted from resume or 'Candidate'",
+  "match_score": 62,
+  "total_required_skills": 13,
+  "matching_skills": [
+    {{"skill": "skill name", "evidence": "where/how this appears in the resume"}}
+  ],
   "missing_skills": [
     {{"skill": "skill name", "importance": "Critical/High/Medium", "reason": "why it matters for this role"}}
   ],
