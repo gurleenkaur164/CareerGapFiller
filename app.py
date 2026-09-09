@@ -2,6 +2,7 @@ import os
 import json
 import re
 import smtplib
+import logging
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from flask import Flask, request, jsonify, render_template
@@ -12,7 +13,13 @@ import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
+from rag_engine import init_vector_store, retrieve_resources, get_flat_resources_for_prompt
+
 load_dotenv()
+
+# ── Logging ────────────────────────────────────────────────────────────────
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB max upload
@@ -93,8 +100,17 @@ def extract_job_description(url_or_text):
         return url_or_text.strip(), None
 
 
-def analyze_gap_and_generate_roadmap(resume_text, job_description):
-    """Use Groq to analyze the skill gap and generate a 7-day roadmap."""
+# ── STEP 1: Identify Skill Gaps (Groq) ────────────────────────────────────
+def identify_skill_gaps(resume_text, job_description):
+    """
+    Use Groq to analyze the resume vs JD and extract skill gaps.
+    This is the first LLM call — focused and lightweight.
+
+    Returns a dict with:
+      - job_title, candidate_name
+      - match_score, total_required_skills
+      - matching_skills[], missing_skills[]
+    """
     prompt = f"""You are an expert career coach and skills gap analyst.
 
 I will give you:
@@ -106,7 +122,6 @@ Your task is to:
 2. Determine which of those the candidate ALREADY HAS (matching skills)
 3. Identify the TOP 5-7 MISSING skills/keywords
 4. Calculate a match percentage (matching skills / total required skills * 100, rounded to nearest integer)
-5. Generate a personalized 7-DAY learning roadmap to bridge the gaps
 
 Return your response as a VALID JSON object with this exact structure:
 {{
@@ -119,19 +134,7 @@ Return your response as a VALID JSON object with this exact structure:
   ],
   "missing_skills": [
     {{"skill": "skill name", "importance": "Critical/High/Medium", "reason": "why it matters for this role"}}
-  ],
-  "roadmap": [
-    {{
-      "day": 1,
-      "focus": "main topic for the day",
-      "tasks": ["task 1", "task 2", "task 3"],
-      "resources": [
-        {{"title": "resource name", "url": "https://free-resource-url.com", "type": "Course/Article/Video/Practice"}}
-      ],
-      "goal": "what you'll achieve by end of day"
-    }}
-  ],
-  "summary": "2-3 sentence motivational summary of the plan"
+  ]
 }}
 
 RESUME:
@@ -145,12 +148,123 @@ Return ONLY the JSON, no markdown, no explanation."""
     chat_completion = client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
         model="llama-3.3-70b-versatile",
+        temperature=0.5,
+        max_tokens=2048,
+        response_format={"type": "json_object"},
+    )
+
+    return json.loads(chat_completion.choices[0].message.content)
+
+
+# ── STEP 2: Generate Roadmap with RAG Context (Groq) ──────────────────────
+def generate_roadmap_with_context(resume_text, job_description, gap_analysis, retrieved_resources_text):
+    """
+    Use Groq to generate a personalized 7-day roadmap.
+    This is the second LLM call — enriched with RAG-retrieved resources.
+
+    The prompt includes real learning resources from the knowledge base,
+    instructing the LLM to USE them (not hallucinate URLs).
+    """
+    missing_skills_summary = ", ".join(
+        s["skill"] for s in gap_analysis.get("missing_skills", [])
+    )
+
+    prompt = f"""You are an expert career coach creating a personalized 7-day learning roadmap.
+
+CONTEXT:
+- Candidate: {gap_analysis.get('candidate_name', 'Candidate')}
+- Target role: {gap_analysis.get('job_title', 'Target Role')}
+- Match score: {gap_analysis.get('match_score', 'N/A')}%
+- Missing skills to bridge: {missing_skills_summary}
+
+RESUME (summary):
+{resume_text[:1500]}
+
+JOB DESCRIPTION (summary):
+{job_description[:1000]}
+
+AVAILABLE LEARNING RESOURCES (from our curated knowledge base):
+{retrieved_resources_text}
+
+YOUR TASK:
+Create a 7-day learning roadmap that uses the ABOVE RESOURCES. You MUST:
+1. Use the exact resource titles and URLs provided above — do NOT invent or hallucinate any URLs.
+2. Assign 2-3 resources per day from the list above.
+3. If the provided resources don't cover a skill, you may suggest a general activity (e.g., "practice on LeetCode") but clearly mark it.
+4. Order the days logically: foundational skills first, advanced topics later.
+
+Return your response as a VALID JSON object with this exact structure:
+{{
+  "roadmap": [
+    {{
+      "day": 1,
+      "focus": "main topic for the day",
+      "tasks": ["task 1", "task 2", "task 3"],
+      "resources": [
+        {{"title": "exact title from above", "url": "exact url from above", "type": "Course/Article/Video/Practice"}}
+      ],
+      "goal": "what you'll achieve by end of day"
+    }}
+  ],
+  "summary": "2-3 sentence motivational summary of the plan"
+}}
+
+Return ONLY the JSON, no markdown, no explanation."""
+
+    chat_completion = client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model="llama-3.3-70b-versatile",
         temperature=0.7,
         max_tokens=4096,
         response_format={"type": "json_object"},
     )
 
     return json.loads(chat_completion.choices[0].message.content)
+
+
+# ── Combined RAG Pipeline ─────────────────────────────────────────────────
+def analyze_gap_and_generate_roadmap(resume_text, job_description):
+    """
+    Full 2-step RAG pipeline:
+      1. Groq → identify skill gaps
+      2. ChromaDB → retrieve relevant resources for missing skills
+      3. Groq → generate roadmap using retrieved resources
+
+    Returns the complete roadmap JSON (same structure as before).
+    """
+    # Step 1: Identify skill gaps
+    logger.info("Step 1: Identifying skill gaps via Groq...")
+    gap_analysis = identify_skill_gaps(resume_text, job_description)
+
+    missing_skills = gap_analysis.get("missing_skills", [])
+    logger.info(
+        "Found %d missing skills: %s",
+        len(missing_skills),
+        [s.get("skill", s) for s in missing_skills],
+    )
+
+    # Step 2: RAG retrieval from ChromaDB
+    logger.info("Step 2: Retrieving resources from ChromaDB (RAG)...")
+    retrieved = retrieve_resources(missing_skills, top_k=3)
+    resources_text = get_flat_resources_for_prompt(retrieved)
+    logger.info("Retrieved resources for %d skills.", len(retrieved))
+
+    # Step 3: Generate roadmap with context
+    logger.info("Step 3: Generating roadmap with RAG context via Groq...")
+    roadmap_data = generate_roadmap_with_context(
+        resume_text, job_description, gap_analysis, resources_text
+    )
+
+    # Merge gap analysis into roadmap response
+    roadmap_data["job_title"] = gap_analysis.get("job_title", "")
+    roadmap_data["candidate_name"] = gap_analysis.get("candidate_name", "Candidate")
+    roadmap_data["match_score"] = gap_analysis.get("match_score")
+    roadmap_data["total_required_skills"] = gap_analysis.get("total_required_skills")
+    roadmap_data["matching_skills"] = gap_analysis.get("matching_skills", [])
+    roadmap_data["missing_skills"] = gap_analysis.get("missing_skills", [])
+    roadmap_data["rag_powered"] = True  # Flag for the frontend
+
+    return roadmap_data
 
 
 def send_roadmap_email(to_email, candidate_name, roadmap_data):
@@ -203,7 +317,7 @@ def send_roadmap_email(to_email, candidate_name, roadmap_data):
       {days_html}
       <div style="background:#1e293b;border-radius:12px;padding:20px;margin-top:24px;text-align:center;">
         <p style="color:#94a3b8;font-style:italic;">{roadmap_data.get('summary','')}</p>
-        <p style="color:#475569;font-size:12px;margin-top:16px;">Generated by Career Gap-Filler Advisor 🚀</p>
+        <p style="color:#475569;font-size:12px;margin-top:16px;">Generated by Career Gap-Filler Advisor 🚀 | Resources powered by RAG</p>
       </div>
     </body></html>"""
 
@@ -258,7 +372,7 @@ def analyze():
 
         job_description = sanitize_input(job_description)
 
-        # Analyze and generate roadmap
+        # Analyze and generate roadmap (2-step RAG pipeline)
         roadmap_data = analyze_gap_and_generate_roadmap(resume_text, job_description)
 
         # Optionally send email
@@ -274,9 +388,16 @@ def analyze():
     except json.JSONDecodeError as e:
         return jsonify({"error": f"AI returned invalid JSON. Try again. Detail: {str(e)}"}), 500
     except Exception as e:
+        logger.exception("Error in /analyze endpoint")
         return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':
     os.makedirs('uploads', exist_ok=True)
+
+    # Initialize RAG vector store on startup
+    logger.info("Initializing RAG vector store...")
+    init_vector_store()
+    logger.info("✓ RAG engine ready. Starting Flask server...")
+
     app.run(debug=True, port=5000)

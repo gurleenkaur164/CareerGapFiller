@@ -566,6 +566,21 @@
       font-size: 14px;
     }
 
+    .rag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(16,185,129,0.08);
+      border: 1px solid rgba(16,185,129,0.2);
+      color: var(--accent3);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.03em;
+      margin-left: 8px;
+    }
+
     /* ── Copy button ── */
     .btn-row {
       display: flex;
@@ -700,7 +715,8 @@
         <div class="step active" id="step1">reading your resume</div>
         <div class="step" id="step2">parsing job description</div>
         <div class="step" id="step3">ai identifying skill gaps</div>
-        <div class="step" id="step4">generating 7-day roadmap</div>
+        <div class="step" id="step4">retrieving learning resources (RAG)</div>
+        <div class="step" id="step5">generating personalized 7-day roadmap</div>
       </div>
     </div>
 
@@ -746,7 +762,7 @@
 
       <!-- 7-Day Roadmap -->
       <div class="card">
-        <div class="card-title">your 7-day learning roadmap</div>
+        <div class="card-title">your 7-day learning roadmap<span class="rag-badge" id="ragBadge" style="display:none">⚡ RAG-powered resources</span></div>
         <div id="roadmapDays"></div>
       </div>
 
@@ -816,7 +832,7 @@
 
     // ── Loading step animation ──
     function animateSteps() {
-      const steps = ['step1','step2','step3','step4'];
+      const steps = ['step1','step2','step3','step4','step5'];
       let i = 0;
       const interval = setInterval(() => {
         if (i > 0) document.getElementById(steps[i-1]).classList.replace('active','done');
@@ -896,6 +912,11 @@
         const es = document.getElementById('emailStatus');
         es.style.display = 'inline-flex';
         es.textContent = data.email_status.success ? 'roadmap emailed!' : 'email failed';
+      }
+
+      // Show RAG badge if resources were retrieved via RAG
+      if (rd.rag_powered) {
+        document.getElementById('ragBadge').style.display = 'inline-flex';
       }
 
       // Match Score
@@ -1043,7 +1064,8 @@
       document.getElementById('matchingSkillsCard').style.display = 'none';
       document.getElementById('scoreCircle').style.strokeDashoffset = 327;
       document.getElementById('scoreText').textContent = '0%';
-      ['step1','step2','step3','step4'].forEach((s,i) => {
+      document.getElementById('ragBadge').style.display = 'none';
+      ['step1','step2','step3','step4','step5'].forEach((s,i) => {
         const el = document.getElementById(s);
         el.className = 'step' + (i === 0 ? ' active' : '');
       });
