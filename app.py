@@ -13,7 +13,12 @@ import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
-from rag_engine import init_vector_store, retrieve_resources, get_flat_resources_for_prompt
+from rag_engine import (
+    init_vector_store,
+    create_query_for_skill,
+    retrieve_resources,
+    get_flat_resources_for_prompt,
+)
 
 load_dotenv()
 
@@ -147,7 +152,7 @@ Return ONLY the JSON, no markdown, no explanation."""
 
     chat_completion = client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
-        model="llama-3.3-70b-versatile",
+        model="qwen/qwen3.8-27b",
         temperature=0.5,
         max_tokens=2048,
         response_format={"type": "json_object"},
@@ -165,8 +170,19 @@ def generate_roadmap_with_context(resume_text, job_description, gap_analysis, re
     The prompt includes real learning resources from the knowledge base,
     instructing the LLM to USE them (not hallucinate URLs).
     """
+    missing_skills = gap_analysis.get("missing_skills", [])
+    matching_skills = gap_analysis.get("matching_skills", [])
     missing_skills_summary = ", ".join(
-        s["skill"] for s in gap_analysis.get("missing_skills", [])
+        s["skill"] if isinstance(s, dict) else str(s) for s in missing_skills
+    )
+    skill_gaps_text = json.dumps(
+        {
+            "match_score": gap_analysis.get("match_score"),
+            "total_required_skills": gap_analysis.get("total_required_skills"),
+            "matching_skills": matching_skills,
+            "missing_skills": missing_skills,
+        },
+        indent=2,
     )
 
     prompt = f"""You are an expert career coach creating a personalized 7-day learning roadmap.
@@ -176,6 +192,9 @@ CONTEXT:
 - Target role: {gap_analysis.get('job_title', 'Target Role')}
 - Match score: {gap_analysis.get('match_score', 'N/A')}%
 - Missing skills to bridge: {missing_skills_summary}
+
+SKILL GAP ANALYSIS:
+{skill_gaps_text}
 
 RESUME (summary):
 {resume_text[:1500]}
@@ -213,7 +232,7 @@ Return ONLY the JSON, no markdown, no explanation."""
 
     chat_completion = client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
-        model="llama-3.3-70b-versatile",
+        model="qwen/qwen3.8-27b",
         temperature=0.7,
         max_tokens=4096,
         response_format={"type": "json_object"},
@@ -225,10 +244,11 @@ Return ONLY the JSON, no markdown, no explanation."""
 # ── Combined RAG Pipeline ─────────────────────────────────────────────────
 def analyze_gap_and_generate_roadmap(resume_text, job_description):
     """
-    Full 2-step RAG pipeline:
+    Full RAG pipeline:
       1. Groq → identify skill gaps
-      2. ChromaDB → retrieve relevant resources for missing skills
-      3. Groq → generate roadmap using retrieved resources
+      2. Create a retrieval query for each missing skill
+      3. Sentence Transformers + ChromaDB → top 3 resources per skill
+      4. Groq → generate roadmap from retrieved resources + resume + JD + gaps
 
     Returns the complete roadmap JSON (same structure as before).
     """
@@ -243,14 +263,18 @@ def analyze_gap_and_generate_roadmap(resume_text, job_description):
         [s.get("skill", s) for s in missing_skills],
     )
 
-    # Step 2: RAG retrieval from ChromaDB
-    logger.info("Step 2: Retrieving resources from ChromaDB (RAG)...")
+    # Step 2: Create a retrieval query for each missing skill
+    skill_queries = [create_query_for_skill(s)[0] for s in missing_skills]
+    logger.info("Step 2: Created %d skill queries for RAG.", len(skill_queries))
+
+    # Step 3: Embed queries and retrieve top 3 resources from local ChromaDB
+    logger.info("Step 3: Retrieving top 3 resources per skill from ChromaDB...")
     retrieved = retrieve_resources(missing_skills, top_k=3)
     resources_text = get_flat_resources_for_prompt(retrieved)
     logger.info("Retrieved resources for %d skills.", len(retrieved))
 
-    # Step 3: Generate roadmap with context
-    logger.info("Step 3: Generating roadmap with RAG context via Groq...")
+    # Step 4: Generate roadmap with retrieved resources + resume + JD + skill gaps
+    logger.info("Step 4: Generating roadmap with RAG context via Groq...")
     roadmap_data = generate_roadmap_with_context(
         resume_text, job_description, gap_analysis, resources_text
     )

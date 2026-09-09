@@ -5,3 +5,5 @@ __pycache__/
 .venv/
 uploads/
 chroma_db/
+vector_store/
+tfidf_cache/
