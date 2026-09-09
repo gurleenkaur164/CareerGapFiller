@@ -196,14 +196,7 @@ career-gap-filler/
 
 ---
 
-## 🔮 Future Improvements
 
-- [ ] Add RAG: store past roadmaps in a vector DB, retrieve similar plans for faster generation
-- [ ] GitHub Actions integration: auto-commit roadmap as a `.md` file to user's repo
-- [ ] Skill tracking: checkboxes in the roadmap, stored in localStorage
-- [ ] LinkedIn job URL parsing with Playwright/Selenium
-- [ ] Multi-resume comparison (current vs target profile over time)
-- [ ] Slack/WhatsApp notification instead of just email
 
 ---
 
